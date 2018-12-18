@@ -29,5 +29,9 @@ echo 1 > $filter
 done
 fi
 
+# Restore iptables without flushing all chains (do not flush docker rules)
 /sbin/iptables-restore -n /etc/iptables.rules
-/sbin/ip6tables-restore -n /etc/ip6tables.rules
+
+if [ -x "$(which ip6tables 2>/dev/null)" ]; then
+/sbin/ip6tables-restore /etc/ip6tables.rules
+fi
