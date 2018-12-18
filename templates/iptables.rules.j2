@@ -21,7 +21,7 @@
 # Pass docker traffic from docker external interfaces to FILTERS chain
 {% for interface in firewall_docker_input_interfaces %}
 -A DOCKER-USER -i {{ interface }} -j FILTERS
-{% endif %}
+{% endfor %}
 
 # Forwarded ports.
 {# Add a rule for each forwarded port #}
