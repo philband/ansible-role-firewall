@@ -1,7 +1,6 @@
 ---
 firewall_state: started
 firewall_enabled_at_boot: true
-firewall_docker_mode: true
 
 firewall_docker_input_interfaces: []
 
