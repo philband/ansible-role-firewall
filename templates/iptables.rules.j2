@@ -1,0 +1,71 @@
+{{ ansible_managed }}
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+:FILTERS - [0:0]
+:DOCKER-USER - [0:0]
+
+-F INPUT
+-F DOCKER-USER
+-F FILTERS
+
+# Accept traffic from loopback interface (localhost).
+-A INPUT -i lo -j ACCEPT
+
+# Accept icmp ping requests.
+-A INPUT -p icmp --icmp-type any -j ACCEPT
+
+# Pass inbound traffic to FILTERS chain
+-A INPUT -j FILTERS
+# Pass docker traffic from docker external interfaces to FILTERS chain
+{% for interface in firewall_docker_input_interfaces %}
+-A DOCKER-USER -i {{ interface }} -j FILTERS
+{% endif %}
+
+# Forwarded ports.
+{# Add a rule for each forwarded port #}
+{% for forwarded_port in firewall_forwarded_tcp_ports %}
+-t nat -I PREROUTING -p tcp --dport {{ forwarded_port.src }} -j REDIRECT --to-port {{ forwarded_port.dest }}
+-t nat -I OUTPUT -p tcp -o lo --dport {{ forwarded_port.src }} -j REDIRECT --to-port {{ forwarded_port.dest }}
+{% endfor %}
+{% for forwarded_port in firewall_forwarded_udp_ports %}
+-t nat -I PREROUTING -p udp --dport {{ forwarded_port.src }} -j REDIRECT --to-port {{ forwarded_port.dest }}
+-t nat -I OUTPUT -p udp -o lo --dport {{ forwarded_port.src }} -j REDIRECT --to-port {{ forwarded_port.dest }}
+{% endfor %}
+
+# Open ports.
+{# Add a rule for each open port #}
+{% for port in firewall_allowed_tcp_ports %}
+-A FILTERS -p tcp -m tcp --dport {{ port }} -j ACCEPT
+{% endfor %}
+{% for port in firewall_allowed_udp_ports %}
+-A FILTERS -p udp -m udp --dport {{ port }} -j ACCEPT
+{% endfor %}
+
+-A FILTERS -p icmp -j ACCEPT
+
+# Allow NTP traffic for time synchronization.
+-A OUTPUT -p udp --dport 123 -j ACCEPT
+-A FILTERS -p udp --sport 123 -j ACCEPT
+
+# Additional custom rules.
+{% for rule in firewall_additional_rules %}
+{{ rule }}
+{% endfor %}
+
+# Allow established connections:
+-A FILTERS -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Log EVERYTHING (ONLY for Debug).
+# -A FILTERS -j LOG
+
+{% if firewall_log_dropped_packets %}
+# Log other incoming requests (all of which are dropped) at 15/minute max.
+-A FILTERS -m limit --limit 15/minute -j LOG --log-level 7 --log-prefix "Dropped by firewall: "
+{% endif %}
+
+# Drop all other traffic.
+-A FILTERS -j DROP
+
+COMMIT
