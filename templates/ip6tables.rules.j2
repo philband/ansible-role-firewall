@@ -7,6 +7,9 @@
 # Accept traffic from loopback interface (localhost).
 -A INPUT -i lo -j ACCEPT
 
+# Allow established connections:
+-A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
 # Open ports.
 {# Add a rule for each open port #}
 {% for port in firewall_allowed_tcp_ports %}
@@ -16,8 +19,8 @@
 -A INPUT -p udp -m udp --dport {{ port }} -j ACCEPT
 {% endfor %}
 
-# Accept icmp ping requests.
--A INPUT -p icmp -j ACCEPT
+# Accept ICMP v6 packets
+-A INPUT -p ipv6-icmp -j ACCEPT
 
 # Allow NTP traffic for time synchronization.
 -A OUTPUT -p udp --dport 123 -j ACCEPT
@@ -30,9 +33,6 @@
 {% for rule in firewall_ip6_additional_rules %}
 {{ rule }}
 {% endfor %}
-
-# Allow established connections:
--A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
 # Log EVERYTHING (ONLY for Debug).
 # -A INPUT -j LOG
