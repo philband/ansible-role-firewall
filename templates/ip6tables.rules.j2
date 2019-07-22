@@ -23,6 +23,9 @@
 -A OUTPUT -p udp --dport 123 -j ACCEPT
 -A INPUT -p udp --sport 123 -j ACCEPT
 
+# Allow outgoing traffic
+-A OUTPUT -j ACCEPT
+
 # Additional custom rules.
 {% for rule in firewall_ip6_additional_rules %}
 {{ rule }}
